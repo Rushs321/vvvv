@@ -13,8 +13,8 @@
     "basic-auth": "^2.0.1",
     "express": "4.19.2",
     "lodash": "^4.17.21",
-    "request": "^2.83.0",
-    "sharp": "^0.28.2"
+    "undici": "6.x",
+    "sharp": "0.33.5"
   },
   "engines": {
     "node": "20.x"
