@@ -1,4 +1,4 @@
-const request = require('request');
+const undici = require('undici');
 const pick = require('lodash').pick;
 const shouldCompress = require('./shouldCompress');
 const redirect = require('./redirect');
@@ -7,7 +7,7 @@ const bypass = require('./bypass');
 const copyHeaders = require('./copyHeaders');
 
 function proxy(req, res) {
-  let origin = request.get(req.params.url, {
+  let origin = undici.request(req.params.url, {
     headers: {
       ...pick(req.headers, ["cookie", "dnt", "referer"]),
       "user-agent": "Bandwidth-Hero Compressor",
