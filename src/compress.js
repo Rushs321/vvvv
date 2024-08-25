@@ -22,7 +22,8 @@ function compress(req, res, input) {
         res.status(200)
         res.write(output);
         res.end();
-    });
+      })
+    );
 }
 
 module.exports = compress;
