@@ -1,4 +1,4 @@
-const fetch = require('node-fetch');
+const request = require('request');
 const pick = require('lodash').pick;
 const shouldCompress = require('./shouldCompress');
 const redirect = require('./redirect');
@@ -7,7 +7,7 @@ const bypass = require('./bypass');
 const copyHeaders = require('./copyHeaders');
 
 function proxy(req, res) {
-  const origin = fetch(req.params.url, {
+  const origin = request.get(req.params.url, {
     headers: {
       ...pick(req.headers, ["cookie", "dnt", "referer"]),
       "user-agent": "Bandwidth-Hero Compressor",
