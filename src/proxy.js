@@ -60,8 +60,7 @@ function proxy(req, res) {
       );
       return origin.pipe(res);
     }
-  );
+    });
 }
-
 
 module.exports = proxy;
