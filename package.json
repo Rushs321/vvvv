@@ -13,7 +13,7 @@
     "basic-auth": "^2.0.1",
     "express": "4.19.2",
     "lodash": "^4.17.21",
-    "request": "2.88.2",
+    "node-fetch": "2.7.0",
     "sharp": "0.33.5"
   },
   "engines": {
