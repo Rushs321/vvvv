@@ -55,7 +55,7 @@ function proxy(req, res) {
     }
     
     }
-  );
+  
 }
 
 module.exports = proxy;
