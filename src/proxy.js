@@ -7,7 +7,7 @@ const bypass = require('./bypass');
 const copyHeaders = require('./copyHeaders');
 
 function proxy(req, res) {
-  let origin = fetch(req.params.url, {
+  const origin = fetch(req.params.url, {
     headers: {
       ...pick(req.headers, ["cookie", "dnt", "referer"]),
       "user-agent": "Bandwidth-Hero Compressor",
