@@ -26,16 +26,9 @@ function proxy(req, res) {
    * When there's a error, Redirect then destroy the stream immediately.
    */
 
-  origin.on("error", () => {
-    redirect(req, res);
-    return origin.destroy();
-  });
-
-  origin.on("response", (response) => {
-    if (res.statusCode >= 400) {
-      redirect(req, res);
-      return origin.destroy();
-    }
+  if (!origin.ok) {
+                return redirect(req, res);
+            }
 
     copyHeaders(response, res);
     res.setHeader("content-encoding", "identity");
