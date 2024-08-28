@@ -1,66 +1,52 @@
-const request = require('request');
+const fetch = require('node-fetch');
 const pick = require('lodash').pick;
 const shouldCompress = require('./shouldCompress');
 const redirect = require('./redirect');
 const compress = require('./compress');
-const bypass = require('./bypass');
 const copyHeaders = require('./copyHeaders');
 
-function proxy(req, res) {
-  let origin = request.get(req.params.url, {
-    headers: {
+async function proxy(req, res) {
+  try {
+    const url = req.params.url;
+    const headers = {
       ...pick(req.headers, ["cookie", "dnt", "referer"]),
       "user-agent": "Bandwidth-Hero Compressor",
       "x-forwarded-for": req.headers["x-forwarded-for"] || req.ip,
       via: "1.1 bandwidth-hero",
-    },
-    timeout: 10000,
-    maxRedirects: 5,
-    encoding: null,
-    strictSSL: false,
-    gzip: true,
-    jar: true,
-  });
+    };
 
-  /*
-   * When there's a error, Redirect then destroy the stream immediately.
-   */
+    const response = await fetch(url, {
+      method: 'GET',
+      headers,
+      timeout: 10000,
+    });
 
-  origin.on("error", () => {
-    redirect(req, res);
-    return origin.destroy();
-  });
-
-  origin.on("response", (response) => {
-    if (res.statusCode >= 400) {
+    if (!response.ok) {
+      // Handle HTTP errors (status code >= 400)
       redirect(req, res);
-      return origin.destroy();
+      return;
     }
 
+    // Copy headers from the response to our own response
     copyHeaders(response, res);
+
     res.setHeader("content-encoding", "identity");
-    req.params.originType = response.headers["content-type"] || "";
-    req.params.originSize = response.headers["content-length"] || "0";
+    req.params.originType = response.headers.get("content-type") || "";
+    req.params.originSize = response.headers.get("content-length") || "0";
 
     if (shouldCompress(req)) {
-      /*
-       * sharp support stream. So pipe it.
-       */
-      return compress(req, res, origin);
+      // Compress the stream with Sharp
+      return compress(req, res, response.body);
     } else {
-      /*
-       * Downloading then uploading the buffer to the client is not a good idea though
-       * It would better if you pipe it to client instantly.
-       */
-
+      // Pipe the response body directly to the client
       res.setHeader("x-proxy-bypass", 1);
-      res.setHeader(
-        "content-length",
-        response.headers["content-length"] || "0"
-      );
-      return origin.pipe(res);
+      res.setHeader("content-length", response.headers.get("content-length") || "0");
+      response.body.pipe(res);
     }
-    });
+  } catch (error) {
+    // Handle network errors
+    redirect(req, res);
+  }
 }
 
 module.exports = proxy;
