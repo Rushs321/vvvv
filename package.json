@@ -10,7 +10,6 @@
     "start": "node server.js"
   },
   "dependencies": {
-    "basic-auth": "^2.0.1",
     "express": "4.19.2",
     "lodash": "^4.17.21",
     "fetch": "2.7.0",
