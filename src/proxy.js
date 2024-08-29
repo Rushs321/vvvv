@@ -1,55 +1,42 @@
 const fetch = require('node-fetch');
-const pick = require('lodash').pick;
+const { pick } = require('lodash');
 const shouldCompress = require('./shouldCompress');
 const redirect = require('./redirect');
 const compress = require('./compress');
+const bypass = require('./bypass');
 const copyHeaders = require('./copyHeaders');
 
-async function proxy(req, res) {
-  try {
-    const url = req.query.url;
-    console.log('Requested URL:', url);
+function proxy(req, res) {
+  fetch(req.params.url, {
+    headers: {
+      ...pick(req.headers, ['cookie', 'dnt', 'referer']),
+      'user-agent': 'Bandwidth-Hero Compressor',
+      'x-forwarded-for': req.headers['x-forwarded-for'] || req.ip,
+      via: '1.1 bandwidth-hero'
+    },
+    compress: true,
+    redirect: 'follow',
+  })
+    .then(response => {
+      if (!response.ok) {
+        return redirect(req, res);
+      }
 
-    const headers = {
-      ...pick(req.headers, ["cookie", "dnt", "referer"]),
-      "user-agent": "Bandwidth-Hero Compressor",
-      "x-forwarded-for": req.headers["x-forwarded-for"] || req.ip,
-      via: "1.1 bandwidth-hero",
-    };
+      req.params.originType = response.headers.get('content-type') || '';
+      req.params.originSize = response.headers.get('content-length') || '0';
 
-    const response = await fetch(url, {
-      
-      headers,
-      timeout: 10000,  // Note: node-fetch does not support timeout directly
-    });
+      copyHeaders(response, res);
+      res.setHeader('content-encoding', 'identity');
 
-    if (!response.ok) {
-      console.error('Fetch failed with status:', response.status);
-      redirect(req, res);
-      return;
-    }
-
-    copyHeaders(response, res);
-
-    req.params.originType = response.headers.get("content-type") || "";
-    req.params.originSize = response.headers.get("content-length") || "0";
-    console.log('Content-Type:', req.params.originType);
-    console.log('Content-Length:', req.params.originSize);
-
-    if (shouldCompress(req)) {
-      console.log('Compressing image...');
-      return compress(req, res, response.body);
-    } else {
-      console.log('Bypassing compression...');
-      res.setHeader("x-proxy-bypass", 1);
-      res.setHeader("content-length", response.headers.get("content-length") || "0");
-      response.body.pipe(res);
-    }
-  } catch (error) {
-    console.error('Error during proxying:', error);
-    redirect(req, res);
-  }
+      if (shouldCompress(req)) {
+        return compress(req, res, response.body);
+      } else {
+        res.setHeader('x-proxy-bypass', 1);
+        res.setHeader('content-length', req.params.originSize);
+        return response.body.pipe(res);
+      }
+    })
+    .catch(() => redirect(req, res));
 }
-
 
 module.exports = proxy;
