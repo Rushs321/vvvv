@@ -8,6 +8,8 @@ const copyHeaders = require('./copyHeaders');
 async function proxy(req, res) {
   try {
     const url = req.query.url;
+    console.log('Requested URL:', url);
+
     const headers = {
       ...pick(req.headers, ["cookie", "dnt", "referer"]),
       "user-agent": "Bandwidth-Hero Compressor",
@@ -18,35 +20,36 @@ async function proxy(req, res) {
     const response = await fetch(url, {
       method: 'GET',
       headers,
-      timeout: 10000,
+      timeout: 10000,  // Note: node-fetch does not support timeout directly
     });
 
     if (!response.ok) {
-      // Handle HTTP errors (status code >= 400)
+      console.error('Fetch failed with status:', response.status);
       redirect(req, res);
       return;
     }
 
-    // Copy headers from the response to our own response
     copyHeaders(response, res);
 
-    res.setHeader("content-encoding", "identity");
     req.params.originType = response.headers.get("content-type") || "";
     req.params.originSize = response.headers.get("content-length") || "0";
+    console.log('Content-Type:', req.params.originType);
+    console.log('Content-Length:', req.params.originSize);
 
     if (shouldCompress(req)) {
-      // Compress the stream with Sharp
+      console.log('Compressing image...');
       return compress(req, res, response.body);
     } else {
-      // Pipe the response body directly to the client
+      console.log('Bypassing compression...');
       res.setHeader("x-proxy-bypass", 1);
       res.setHeader("content-length", response.headers.get("content-length") || "0");
       response.body.pipe(res);
     }
   } catch (error) {
-    // Handle network errors
+    console.error('Error during proxying:', error);
     redirect(req, res);
   }
 }
+
 
 module.exports = proxy;
