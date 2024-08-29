@@ -18,7 +18,7 @@ async function proxy(req, res) {
     };
 
     const response = await fetch(url, {
-      method: 'GET',
+      
       headers,
       timeout: 10000,  // Note: node-fetch does not support timeout directly
     });
